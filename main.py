@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
+#
 # --------------------------------------------------
 # First Practical Project
 # João Carvalho, #mec: 106310
 # PSR, 12 October 2023.
 # --------------------------------------------------
 
-
 # Imports
     # Colorama
 import colorama
+    # requests
+import requests
+    # munpy
+import numpy as np
+
 from colorama import Fore, Back, Style
 colorama.init(autoreset=True)
     # Time
@@ -27,16 +32,17 @@ from collections import namedtuple
 
 # Sources
     # https://stackoverflow.com/questions/2823316/generate-a-random-letter-in-python
-
-
-# Naming scheme
-# variables name_of_variable
-# functions nameOfFunction
-
+    # https://stackoverflow.com/questions/18834636/random-word-generator-python
 
 # Defining named tuple "Input"
 Input = namedtuple('Input', ['requested', 'received', 'duration'])
 
+# Import words from website
+word_site = "https://www.mit.edu/~ecprice/wordlist.10000"
+
+# Dictionary
+response = requests.get(word_site)
+WORDS = response.content.splitlines()
 
 # Functions
 def getInput(message=""):
@@ -56,11 +62,13 @@ def getInput(message=""):
 def main():
     # Defining the parser
     parser = argparse.ArgumentParser(
-        description='Typer test. The program tests the user for typing accuracy on the keyboard.')
+        description='Typer test. The program tests the user for typing accuracy.')
     parser.add_argument('-utm','--use_time_mode', action='store_true',
         help='Set game to time mode. Defaults to input mode.')
-    parser.add_argument('-mv','--max_value', type=ascii, required=False, default=10,
+    parser.add_argument('-mv','--max_value', type=int, required=False, default=10,
         help='Max number of seconds for time mode or maximum number of inputs for input mode until the game stops.')
+    parser.add_argument('-uw','--use_words', action='store_true',
+        help='Use word typing mode, instead of single character typing.')
     args = vars(parser.parse_args())
 
 
@@ -71,6 +79,7 @@ def main():
     type_miss_duration = 0
     list_of_inputs = []
     in_time_mode = args['use_time_mode']
+    in_words_mode = args['use_words']
 
 
     # Request user to press any key to start the game
@@ -87,8 +96,17 @@ def main():
     elapsed_time = 0
     # Request user to press space key to stop the game
     while not pressed_key == key.SPACE:
-        requested_key = random.choice(string.ascii_lowercase)
-        (pressed_key, key_duration) = getInput(f"Press key {requested_key}")
+        if in_words_mode:
+            word = np.random.choice(WORDS)
+            requested_key = ''.join(map(chr, word))
+            start = time()
+            pressed_key = input(f"Press key {requested_key}\n")
+            end = time()
+            key_duration = end-start
+        else:
+            requested_key = random.choice(string.ascii_lowercase)
+            (pressed_key, key_duration) = getInput(f"Press key {requested_key}") # Should be "Write ..."
+        
         number_of_types += 1
         # 'Input', ['requested', 'received', 'duration']
         list_of_inputs.append(Input(requested_key, pressed_key, key_duration))
@@ -96,10 +114,10 @@ def main():
         if requested_key == pressed_key:
             number_of_hits += 1
             type_hit_duration += key_duration
-            print(f"You pressed key = {Fore.GREEN}{pressed_key}")
+            print(f"You pressed key = {Fore.GREEN}{pressed_key}") # Remove key
         else: # wrong key press
             type_miss_duration += key_duration
-            print(f"You pressed key = {Fore.RED}{pressed_key}")
+            print(f"You pressed key = {Fore.RED}{pressed_key}") # Remove key
 
         if in_time_mode and elapsed_time > args['max_value']:
             break
@@ -108,13 +126,13 @@ def main():
 
         elapsed_time = time() - test_start
 
-
     # Removing space bar from the counters
     if pressed_key == key.SPACE:
         if number_of_types > 0:
             number_of_types -= 1
         if len(list_of_inputs) > 0:
             list_of_inputs.pop()
+
 
 
     # Summing up times
